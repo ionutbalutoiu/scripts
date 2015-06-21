@@ -35,4 +35,4 @@ go install -v github.com/juju/juju/...
 popd
 
 # Copy the binaries to the MAAS & Juju machine
-cp $env:GOPATH\bin\juju* Z:\golang\bin\ -ErrorAction SilentlyContinue -Force
+#cp $env:GOPATH\bin\juju* Z:\golang\bin\ -ErrorAction SilentlyContinue -Force

@@ -19,7 +19,7 @@ git checkout master
 git pull origin master
 
 if [ "$1" = "branch" ]; then
-    git checkout $2
+    git checkout "$2"
     git pull origin "$2"
 elif [ "$1" = "tag" ]; then
     git checkout tags/"$2"
