@@ -7,7 +7,7 @@ ACTION=$1
 
 sudo service mysql $ACTION
 sudo service rabbitmq-server $ACTION
-sudo service keystone $ACTION
+#sudo service keystone $ACTION
 
 sudo service glance-api $ACTION
 sudo service glance-registry $ACTION

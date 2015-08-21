@@ -9,9 +9,9 @@ nova floating-ip-delete $IP_2
 nova delete test
 heat stack-delete test_stack
 
-while [ -z "`nova volume-list | grep test_vol | grep available`" ]; do
-    sleep 1
-done
+#while [ -z "`nova volume-list | grep test_vol | grep available`" ]; do
+#    sleep 1
+#done
 
-VOL_ID=`nova volume-list | grep test_vol | awk '{print $2}'`
-cinder force-delete $VOL_ID
+#VOL_ID=`nova volume-list | grep test_vol | awk '{print $2}'`
+#cinder force-delete $VOL_ID
