@@ -1,13 +1,14 @@
 #!/bin/bash
 
-if [[ $# -ne 2 ]]; then
-    echo "USAGE: $0 <Password> <Private_IP>"
+if [[ $# -ne 3 ]]; then
+    echo "USAGE: $0 <mysql_root_password> <rabbitmq_user_password> <private_ip>"
     exit 1
 fi
 
 # GLOBAL PARAMETERS
-PASSWORD="$1" # Password used by MySQL and RabbitMQ
-IRONIC_PRIVATE_IP="$2"
+MYSQL_ROOT_PASSWORD="$1"
+RABBITMQ_USER_PASSWORD="$2"
+IRONIC_PRIVATE_IP="$3"
 GIT_BRANCH="stable/liberty"
 IRONIC_DIRS="/etc/ironic /var/lib/ironic /var/log/ironic"
 IRONIC_USER="ironic"
@@ -101,7 +102,7 @@ host_ip = 0.0.0.0
 port = 6385
 
 [database]
-connection = mysql+pymysql://ironic:$PASSWORD@127.0.0.1/ironic?charset=utf8
+connection = mysql+pymysql://ironic:$MYSQL_ROOT_PASSWORD@127.0.0.1/ironic?charset=utf8
 
 [dhcp]
 dhcp_provider = none
@@ -125,29 +126,29 @@ http_url = http://$IRONIC_PRIVATE_IP:8080
 
 [oslo_messaging_rabbit]
 rabbit_userid = openstack
-rabbit_password = $PASSWORD
+rabbit_password = $RABBITMQ_USER_PASSWORD
 EOF
 
 # Set up RabbitMQ user
-rabbitmqctl add_user openstack $PASSWORD
+rabbitmqctl add_user openstack $RABBITMQ_USER_PASSWORD
 rabbitmqctl set_permissions openstack ".*" ".*" ".*"
 
 # MySQL installation and database creation
-mysqladmin -u root password $PASSWORD
+mysqladmin -u root password $MYSQL_ROOT_PASSWORD &> /dev/null
 if [[ $? -ne 0 ]]; then
-    mysql -u root -p"$PASSWORD" -e "" &> /dev/null
+    mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "" &> /dev/null
     if [[ $? -ne 0 ]]; then
         echo "ERROR: MySQL root password already set and it differs from the current one."
         exit 1
     fi
 fi
-mysql -u root -p"$PASSWORD" -e "USE ironic;" &> /dev/null
+mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "USE ironic;" &> /dev/null
 if [[ $? -eq 0 ]]; then
-    mysql -u root -p"$PASSWORD" -e "DROP DATABASE ironic;"
+    mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "DROP DATABASE ironic;"
 fi
-mysql -u root -p"$PASSWORD" -e "CREATE DATABASE ironic CHARACTER SET utf8;"
-mysql -u root -p"$PASSWORD" -e "GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'localhost' IDENTIFIED BY '$PASSWORD';"
-mysql -u root -p"$PASSWORD" -e "GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'%' IDENTIFIED BY '$PASSWORD';"
+mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE ironic CHARACTER SET utf8;"
+mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'localhost' IDENTIFIED BY '$MYSQL_ROOT_PASSWORD';"
+mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'%' IDENTIFIED BY '$MYSQL_ROOT_PASSWORD';"
 
 # Create Ironic database tables
 pip install pymysql
