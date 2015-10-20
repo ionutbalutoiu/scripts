@@ -7,7 +7,9 @@ BIN_DIR="$GOPATH/bin"
 WIN_BIN_DIR="$BIN_DIR/windows_amd64"
 JUJU_HOME="$HOME/.juju"
 JUJU_TOOLS="$JUJU_HOME/tools"
-JUJU_RELEASES="$JUJU_TOOLS/releases"
+#JUJU_RELEASES="$JUJU_TOOLS/releases"
+# DEVEL
+JUJU_RELEASES="$JUJU_TOOLS/devel"
 STREAMS_DIR="$JUJU_TOOLS/streams"
 WWW_TOOLS="/var/www/html/tools"
 
@@ -33,7 +35,7 @@ HandleError() {
 
 BuildJuju() {
     pushd $JUJU_SRC
-    #godeps -f -u dependencies.tsv || HandleError "Failed to update dependencies"
+    godeps -f -u dependencies.tsv || HandleError "Failed to update dependencies"
     go install ./... || HandleError "Failed to build tools"
     GOOS=windows go install ./... || HandleError "Failed to build tools for windows"
     popd
@@ -82,7 +84,9 @@ GenerateStreams() {
         rm -rf "$STREAMS_DIR"
     fi
 
-    juju-metadata generate-tools
+    #juju-metadata generate-tools
+    # DEVEL
+    juju-metadata generate-tools --stream devel
 
     if [ -e $WWW_TOOLS ] && [ ! -L $WWW_TOOLS ]
     then

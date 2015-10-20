@@ -1,10 +1,19 @@
 #!/bin/bash
-set -e
 
-if [ $# -ne 5 ]; then
-    echo "USAGE: $0 <flavor_name/id> <keypair_name> <image_name/id> <network_name> <vm_name>"
-    exit 1
+if [[ $# -lt 5 ]]; then
+	echo "USAGE: $0 <flavor> <image> <network_name> <key_name> <vm_name> [OPTIONAL]<availability_zone>"
+	exit 1
 fi
 
-NET_ID=`neutron net-show $4 | awk '{if (NR==5){print $4}}'`
-nova boot --flavor $1 --key-name $2 --image $3 --nic net-id=$NET_ID $5
+AVAILABITY_ZONE=""
+if [[ "$6" != "" ]]; then
+    AVAILABITY_ZONE="--availability-zone=$6"
+fi
+
+NETWORK_ID=`neutron net-show $3 | awk '{if (NR==5) {print $4}}'`
+nova boot --flavor $1 --image $2 --nic net-id=$NETWORK_ID --key-name=$4 $5 $AVAILABITY_ZONE --config-drive=true
+
+#echo "Sleeping 5 seconds..."
+#sleep 5
+#IP=`nova floating-ip-create public | awk '{if(NR==4){print $4}}'`
+#nova floating-ip-associate $5 $IP
