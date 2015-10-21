@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ $# -ne 3 ]]; then
-    echo "USAGE: $0 <mysql_root_password> <rabbitmq_user_password> <private_ip>"
+    echo "USAGE: $0 <mysql_root_password> <rabbitmq_user_password> <ironic_private_ip>"
     exit 1
 fi
 
@@ -13,31 +13,40 @@ GIT_BRANCH="stable/liberty"
 IRONIC_DIRS="/etc/ironic /var/lib/ironic /var/log/ironic"
 IRONIC_USER="ironic"
 IRONIC_GIT_URL="https://github.com/openstack/ironic.git"
-IRONIC_TMP="/tmp/ironic-git"
 IRONIC_CLIENT_GIT_URL="https://github.com/openstack/python-ironicclient.git"
-IRONIC_CLIENT_TMP="/tmp/ironic-client-git"
 KEYSTONERC="/root/keystonerc"
-ENABLED_DRIVERS="agent_ipmitool,pxe_ipmitool,agent_ssh"
+ENABLED_DRIVERS="pxe_ipmitool"
 DEBUG_MODE="True"
 VERBOSE_MODE="True"
 ###################
 
-# Enable Liberty repository
-apt-get install ubuntu-cloud-keyring --force-yes -y
-add-apt-repository cloud-archive:liberty -y
+# MySQL database creation
+mysqladmin -u root password $MYSQL_ROOT_PASSWORD &> /dev/null
+if [[ $? -ne 0 ]]; then
+    mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "" &> /dev/null
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: MySQL root password already set and it differs from the current one."
+        exit 1
+    fi
+fi
+mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "USE ironic;" &> /dev/null
+if [[ $? -eq 0 ]]; then
+    mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "DROP DATABASE ironic;"
+fi
+mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE ironic CHARACTER SET utf8;"
+mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'localhost' IDENTIFIED BY '$MYSQL_ROOT_PASSWORD';"
+mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'%' IDENTIFIED BY '$MYSQL_ROOT_PASSWORD';"
 
-# Install dependencies (MySQL database, RabbitMQ server, etc)
-apt-get update
-apt-get install crudini qemu open-iscsi rabbitmq-server ipmitool git \
-                python-pip tftpd-hpa tftp-hpa nginx syslinux-common \
-                syslinux ipxe python-dev libxml2-dev libxslt1-dev zlib1g-dev -y
-DEBIAN_FRONTEND=noninteractive apt-get install mysql-server -y -q
+# Set up RabbitMQ user
+rabbitmqctl add_user openstack $RABBITMQ_USER_PASSWORD
+rabbitmqctl set_permissions openstack ".*" ".*" ".*"
 
 # Install Ironic from git
 grep $IRONIC_USER /etc/passwd -q || useradd $IRONIC_USER
 for i in $IRONIC_DIRS; do mkdir -p $i; done
-git clone $IRONIC_GIT_URL $IRONIC_TMP
-pushd $IRONIC_TMP
+TMP_DIR="/tmp/`basename $IRONIC_GIT_URL`"
+git clone $IRONIC_GIT_URL $TMP_DIR
+pushd $TMP_DIR
 git checkout $GIT_BRANCH
 pip install -r requirements.txt
 python setup.py install
@@ -45,44 +54,7 @@ cp -rf etc/ironic/* /etc/ironic/
 mv /etc/ironic/ironic.conf.sample /etc/ironic/ironic.conf
 for i in $IRONIC_DIRS; do chown -R $IRONIC_USER:$IRONIC_USER $i; done
 popd
-rm -rf $IRONIC_TMP
-
-# Install python-ironic-client from git
-git clone $IRONIC_CLIENT_GIT_URL $IRONIC_CLIENT_TMP
-pushd $IRONIC_CLIENT_TMP
-git checkout $GIT_BRANCH
-pip install -r requirements.txt
-python setup.py install
-popd
-rm -rf $IRONIC_CLIENT_TMP
-
-# Create ironic-api upstart service
-cat << EOF > /etc/init/ironic-api.conf
-start on runlevel [2345]
-stop on runlevel [016]
-pre-start script
-  mkdir -p /var/run/ironic
-  chown -R $IRONIC_USER:$IRONIC_USER /var/run/ironic
-end script
-respawn
-respawn limit 2 10
-
-exec start-stop-daemon --start -c $IRONIC_USER --exec /usr/local/bin/ironic-api -- --config-file /etc/ironic/ironic.conf --log-file /var/log/ironic/ironic-api.log
-EOF
-
-# Create ironic-conductor upstart service
-cat << EOF > /etc/init/ironic-conductor.conf
-start on runlevel [2345]
-stop on runlevel [016]
-pre-start script
-  mkdir -p /var/run/ironic
-  chown -R $IRONIC_USER:$IRONIC_USER /var/run/ironic
-end script
-respawn
-respawn limit 2 10
-
-exec start-stop-daemon --start -c $IRONIC_USER --exec /usr/local/bin/ironic-conductor -- --config-file /etc/ironic/ironic.conf --log-file /var/log/ironic/ironic-conductor.log
-EOF
+rm -rf $TMP_DIR
 
 # Generate ironic.conf file
 cat << EOF > /etc/ironic/ironic.conf
@@ -127,28 +99,14 @@ http_url = http://$IRONIC_PRIVATE_IP:8080
 [oslo_messaging_rabbit]
 rabbit_userid = openstack
 rabbit_password = $RABBITMQ_USER_PASSWORD
+
+[processing]
+add_ports = all
+keep_ports = present
+
+[inspector]
+enabled = True
 EOF
-
-# Set up RabbitMQ user
-rabbitmqctl add_user openstack $RABBITMQ_USER_PASSWORD
-rabbitmqctl set_permissions openstack ".*" ".*" ".*"
-
-# MySQL installation and database creation
-mysqladmin -u root password $MYSQL_ROOT_PASSWORD &> /dev/null
-if [[ $? -ne 0 ]]; then
-    mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "" &> /dev/null
-    if [[ $? -ne 0 ]]; then
-        echo "ERROR: MySQL root password already set and it differs from the current one."
-        exit 1
-    fi
-fi
-mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "USE ironic;" &> /dev/null
-if [[ $? -eq 0 ]]; then
-    mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "DROP DATABASE ironic;"
-fi
-mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE ironic CHARACTER SET utf8;"
-mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'localhost' IDENTIFIED BY '$MYSQL_ROOT_PASSWORD';"
-mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'%' IDENTIFIED BY '$MYSQL_ROOT_PASSWORD';"
 
 # Create Ironic database tables
 pip install pymysql
@@ -211,9 +169,37 @@ EOF
 
 # Create Ironic sudoers file
 cat << EOF > /etc/sudoers.d/ironic_sudoers
-Defaults:ironic !requiretty
+Defaults:$IRONIC_USER !requiretty
 
-ironic ALL = (root) NOPASSWD: /usr/local/bin/ironic-rootwrap /etc/ironic/rootwrap.conf *
+$IRONIC_USER ALL = (root) NOPASSWD: /usr/local/bin/ironic-rootwrap /etc/ironic/rootwrap.conf *
+EOF
+
+# Create ironic-api upstart service
+cat << EOF > /etc/init/ironic-api.conf
+start on runlevel [2345]
+stop on runlevel [016]
+pre-start script
+  mkdir -p /var/run/ironic
+  chown -R $IRONIC_USER:$IRONIC_USER /var/run/ironic
+end script
+respawn
+respawn limit 2 10
+
+exec start-stop-daemon --start -c $IRONIC_USER --exec /usr/local/bin/ironic-api -- --config-file /etc/ironic/ironic.conf --log-file /var/log/ironic/ironic-api.log
+EOF
+
+# Create ironic-conductor upstart service
+cat << EOF > /etc/init/ironic-conductor.conf
+start on runlevel [2345]
+stop on runlevel [016]
+pre-start script
+  mkdir -p /var/run/ironic
+  chown -R $IRONIC_USER:$IRONIC_USER /var/run/ironic
+end script
+respawn
+respawn limit 2 10
+
+exec start-stop-daemon --start -c $IRONIC_USER --exec /usr/local/bin/ironic-conductor -- --config-file /etc/ironic/ironic.conf --log-file /var/log/ironic/ironic-conductor.log
 EOF
 
 # Restart the Ironic services
