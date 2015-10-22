@@ -1,1 +1,3 @@
-glance image-create --name=cirros --container-format=bare --copy-from='http://download.cirros-cloud.net/0.3.3/cirros-0.3.3-x86_64-disk.img' --is-public=True --disk-format=qcow2 --progress
+wget http://download.cirros-cloud.net/0.3.3/cirros-0.3.3-x86_64-disk.img -O /tmp/cirros.img
+glance image-create --name=cirros --container-format=bare --file=/tmp/cirros.img --visibility=public --disk-format=qcow2 --progress
+rm /tmp/cirros.img
