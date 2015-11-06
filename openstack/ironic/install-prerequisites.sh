@@ -1,8 +1,5 @@
-#!/bin/bash
-
-# Enable Liberty repository
-apt-get install ubuntu-cloud-keyring --force-yes -y
-add-apt-repository cloud-archive:liberty -y
+#!/usr/bin/env bash
+set -e
 
 # Install prerequisites (MySQL database, RabbitMQ server, etc)
 apt-get update

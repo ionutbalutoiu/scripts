@@ -1,7 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if [[ $# -ne 3 ]]; then
-    echo "USAGE: $0 <mysql_root_password> <rabbitmq_user_password> <ironic_private_ip>"
+    echo "USAGE: $0 <mysql_root_password>" \
+                   "<rabbitmq_user_password>" \
+                   "<ironic_private_ip>"
     exit 1
 fi
 
@@ -201,6 +203,9 @@ respawn limit 2 10
 
 exec start-stop-daemon --start -c $IRONIC_USER --exec /usr/local/bin/ironic-conductor -- --config-file /etc/ironic/ironic.conf --log-file /var/log/ironic/ironic-conductor.log
 EOF
+
+# Install python-client
+$(dirname $0)/install-python-client.sh $IRONIC_CLIENT_GIT_URL $GIT_BRANCH
 
 # Restart the Ironic services
 for i in ironic-api ironic-conductor; do service $i restart; done
