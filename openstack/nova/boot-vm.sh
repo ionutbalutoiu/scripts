@@ -12,6 +12,7 @@ fi
 
 NETWORK_ID=`neutron net-show $3 | awk '{if (NR==5) {print $4}}'`
 nova boot --flavor $1 --image $2 --nic net-id=$NETWORK_ID --key-name=$4 $5 $AVAILABITY_ZONE --config-drive=true
+#nova boot --flavor $1 --image $2 --nic net-id=$NETWORK_ID --key-name=$4 $5 $AVAILABITY_ZONE
 
 #echo "Sleeping 5 seconds..."
 #sleep 5
