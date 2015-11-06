@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 if [[ $# -ne 2 ]]; then
     echo "USAGE: $0 <python_client_git_url>" \
@@ -10,9 +11,12 @@ URL="$1"
 GIT_BRANCH="$2"
 TMP_DIR="/tmp/`basename $URL`"
 
-git clone $URL $TMP_DIR
+if [[ -e $TMP_DIR ]]; then
+    rm -rf $TMP_DIR
+fi
+
+git clone $URL $TMP_DIR -b $GIT_BRANCH
 pushd $TMP_DIR
-git checkout $GIT_BRANCH
 pip install -r requirements.txt
 python setup.py install
 popd
