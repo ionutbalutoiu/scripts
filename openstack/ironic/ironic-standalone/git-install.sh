@@ -1,146 +1,100 @@
 #!/usr/bin/env bash
+set -e
 
-if [[ $# -ne 3 ]]; then
-    echo "USAGE: $0 <mysql_root_password>" \
+if [[ $# -ne 12 ]]; then
+    echo "USAGE: $0 <ironic_user>" \
+                   "<ironic_git_url>" \
+                   "<git_branch>" \
+                   "<ironic_private_ip>" \
+                   "<enabled_drivers>" \
+                   "<ironic_db_name>" \
+                   "<ironic_db_user>" \
+                   "<ironic_db_user_password>" \
+                   "<tftp_root>" \
+                   "<http_root>" \
                    "<rabbitmq_user_password>" \
-                   "<ironic_private_ip>"
+                   "<ironic_images_dir>"
     exit 1
 fi
 
 # GLOBAL PARAMETERS
-MYSQL_ROOT_PASSWORD="$1"
-RABBITMQ_USER_PASSWORD="$2"
-IRONIC_PRIVATE_IP="$3"
-GIT_BRANCH="stable/liberty"
-IRONIC_DIRS="/etc/ironic /var/lib/ironic /var/log/ironic"
-IRONIC_USER="ironic"
-IRONIC_GIT_URL="https://github.com/openstack/ironic.git"
-IRONIC_CLIENT_GIT_URL="https://github.com/openstack/python-ironicclient.git"
-KEYSTONERC="/root/keystonerc"
-ENABLED_DRIVERS="pxe_ipmitool"
-DEBUG_MODE="True"
-VERBOSE_MODE="True"
+IRONIC_USER="$1"
+IRONIC_GIT_URL="$2"
+GIT_BRANCH="$3"
+IRONIC_PRIVATE_IP="$4"
+ENABLED_DRIVERS="$5"
+DB_NAME="$6"
+DB_USER="$7"
+DB_USER_PASSWORD="$8"
+TFTP_ROOT="$9"
+HTTP_ROOT="${10}"
+RABBITMQ_USER_PASSWORD="${11}"
+IRONIC_IMAGES_DIR="${12}"
+ETC_DIR="/etc/ironic"
+LIB_DIR="/var/lib/ironic"
+LOG_DIR="/var/log/ironic"
 ###################
-
-# MySQL database creation
-mysqladmin -u root password $MYSQL_ROOT_PASSWORD &> /dev/null
-if [[ $? -ne 0 ]]; then
-    mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "" &> /dev/null
-    if [[ $? -ne 0 ]]; then
-        echo "ERROR: MySQL root password already set and it differs from the current one."
-        exit 1
-    fi
-fi
-mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "USE ironic;" &> /dev/null
-if [[ $? -eq 0 ]]; then
-    mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "DROP DATABASE ironic;"
-fi
-mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE ironic CHARACTER SET utf8;"
-mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'localhost' IDENTIFIED BY '$MYSQL_ROOT_PASSWORD';"
-mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'%' IDENTIFIED BY '$MYSQL_ROOT_PASSWORD';"
-
-# Set up RabbitMQ user
-rabbitmqctl add_user openstack $RABBITMQ_USER_PASSWORD
-rabbitmqctl set_permissions openstack ".*" ".*" ".*"
 
 # Install Ironic from git
 grep $IRONIC_USER /etc/passwd -q || useradd $IRONIC_USER
-for i in $IRONIC_DIRS; do mkdir -p $i; done
+for i in $ETC_DIR $LIB_DIR $LOG_DIR; do
+    mkdir -p $i;
+done
 TMP_DIR="/tmp/`basename $IRONIC_GIT_URL`"
-git clone $IRONIC_GIT_URL $TMP_DIR
+git clone $IRONIC_GIT_URL $TMP_DIR -b $GIT_BRANCH
 pushd $TMP_DIR
-git checkout $GIT_BRANCH
 pip install -r requirements.txt
 python setup.py install
-cp -rf etc/ironic/* /etc/ironic/
-mv /etc/ironic/ironic.conf.sample /etc/ironic/ironic.conf
-for i in $IRONIC_DIRS; do chown -R $IRONIC_USER:$IRONIC_USER $i; done
+cp -rf etc/ironic/* $ETC_DIR
+mv $ETC_DIR/ironic.conf.sample /etc/ironic/ironic.conf
 popd
+for i in $ETC_DIR $LIB_DIR $LOG_DIR; do
+    chown -R $IRONIC_USER:$IRONIC_USER $i
+done
 rm -rf $TMP_DIR
 
 # Generate ironic.conf file
-cat << EOF > /etc/ironic/ironic.conf
-[DEFAULT]
-log_dir = /var/log/ironic
-auth_strategy = noauth
-enabled_drivers = $ENABLED_DRIVERS
-debug = $DEBUG_MODE
-verbose = $VERBOSE_MODE
-
-[conductor]
-api_url = http://$IRONIC_PRIVATE_IP:6385
-clean_nodes = false
-
-[api]
-host_ip = 0.0.0.0
-port = 6385
-
-[database]
-connection = mysql+pymysql://ironic:$MYSQL_ROOT_PASSWORD@127.0.0.1/ironic?charset=utf8
-
-[dhcp]
-dhcp_provider = none
-
-[glance]
-auth_strategy = noauth
-
-[neutron]
-auth_strategy = noauth
-
-[pxe]
-tftp_root = /tftpboot
-tftp_server = $IRONIC_PRIVATE_IP
-ipxe_enabled = True
-pxe_bootfile_name = undionly.kpxe
-pxe_config_template = \$pybasedir/drivers/modules/ipxe_config.template
-
-[deploy]
-http_root = /httpboot
-http_url = http://$IRONIC_PRIVATE_IP:8080
-
-[oslo_messaging_rabbit]
-rabbit_userid = openstack
-rabbit_password = $RABBITMQ_USER_PASSWORD
-
-[processing]
-add_ports = all
-keep_ports = present
-
-[inspector]
-enabled = True
-EOF
+$(dirname $0)/liberty/conf.sh \
+    $ENABLED_DRIVERS \
+    $IRONIC_PRIVATE_IP \
+    $DB_NAME \
+    $DB_USER \
+    $DB_USER_PASSWORD \
+    $TFTP_ROOT \
+    $HTTP_ROOT \
+    $RABBITMQ_USER_PASSWORD
 
 # Create Ironic database tables
 pip install pymysql
-ironic-dbsync --config-file /etc/ironic/ironic.conf upgrade
+ironic-dbsync --config-file $ETC_DIR/ironic.conf upgrade
 
 # Set up the TFTP to serve iPXE
-mkdir -p /tftpboot
-mkdir -p /httpboot
-cp /usr/lib/syslinux/pxelinux.0 /tftpboot
-cp /usr/lib/syslinux/chain.c32 /tftpboot
-cp /usr/lib/ipxe/undionly.kpxe /tftpboot
+mkdir -p $TFTP_ROOT
+mkdir -p $HTTP_ROOT
+cp /usr/lib/syslinux/pxelinux.0 $TFTP_ROOT
+cp /usr/lib/syslinux/chain.c32 $TFTP_ROOT
+cp /usr/lib/ipxe/undionly.kpxe $TFTP_ROOT
 
-echo 'r ^([^/]) /tftpboot/\1' > /tftpboot/map-file
-echo 'r ^(/tftpboot/) /tftpboot/\2' >> /tftpboot/map-file
+echo 'r ^([^/]) /tftpboot/\1' > $TFTP_ROOT/map-file
+echo 'r ^(/tftpboot/) /tftpboot/\2' >> $TFTP_ROOT/map-file
 
 cat << EOF > /etc/default/tftpd-hpa
 TFTP_USERNAME="$IRONIC_USER"
-TFTP_DIRECTORY="/tftpboot"
+TFTP_DIRECTORY="$TFTP_ROOT"
 TFTP_ADDRESS="0.0.0.0:69"
-TFTP_OPTIONS="-v -v -v -v -v --map-file /tftpboot/map-file /tftpboot"
+TFTP_OPTIONS="--map-file $TFTP_ROOT/map-file $TFTP_ROOT"
 EOF
 
-chown -R $IRONIC_USER:$IRONIC_USER /tftpboot
-chown -R $IRONIC_USER:$IRONIC_USER /httpboot
+chown -R $IRONIC_USER:$IRONIC_USER $TFTP_ROOT
+chown -R $IRONIC_USER:$IRONIC_USER $HTTP_ROOT
 service tftpd-hpa restart
 
 # Set up Nginx web server for images deployed by Ironic
-mkdir -p /ironic_images
+mkdir -p $IRONIC_IMAGES_DIR
 cat << EOF > /etc/nginx/sites-available/default
 server {
     listen 80;
-    root /ironic_images;
+    root $IRONIC_IMAGES_DIR;
     server_name default;
 
     location / {
@@ -152,7 +106,7 @@ EOF
 cat << EOF > /etc/nginx/sites-available/httpboot
 server {
     listen 8080;
-    root /httpboot;
+    root $HTTP_ROOT;
     server_name httpboot;
 
     location / {
@@ -163,17 +117,11 @@ EOF
 ls /etc/nginx/sites-enabled/httpboot &>/dev/null || ln -s /etc/nginx/sites-available/httpboot /etc/nginx/sites-enabled
 service nginx reload
 
-# Create keystonerc file
-cat << EOF > $KEYSTONERC
-export OS_AUTH_TOKEN=' '
-export IRONIC_URL=http://$IRONIC_PRIVATE_IP:6385/
-EOF
-
 # Create Ironic sudoers file
 cat << EOF > /etc/sudoers.d/ironic_sudoers
 Defaults:$IRONIC_USER !requiretty
 
-$IRONIC_USER ALL = (root) NOPASSWD: /usr/local/bin/ironic-rootwrap /etc/ironic/rootwrap.conf *
+$IRONIC_USER ALL = (root) NOPASSWD: /usr/local/bin/ironic-rootwrap $ETC_DIR/rootwrap.conf *
 EOF
 
 # Create ironic-api upstart service
@@ -187,7 +135,7 @@ end script
 respawn
 respawn limit 2 10
 
-exec start-stop-daemon --start -c $IRONIC_USER --exec /usr/local/bin/ironic-api -- --config-file /etc/ironic/ironic.conf --log-file /var/log/ironic/ironic-api.log
+exec start-stop-daemon --start -c $IRONIC_USER --exec /usr/local/bin/ironic-api -- --config-file $ETC_DIR/ironic.conf --log-file $LOG_DIR/ironic-api.log
 EOF
 
 # Create ironic-conductor upstart service
@@ -201,11 +149,10 @@ end script
 respawn
 respawn limit 2 10
 
-exec start-stop-daemon --start -c $IRONIC_USER --exec /usr/local/bin/ironic-conductor -- --config-file /etc/ironic/ironic.conf --log-file /var/log/ironic/ironic-conductor.log
+exec start-stop-daemon --start -c $IRONIC_USER --exec /usr/local/bin/ironic-conductor -- --config-file $ETC_DIR/ironic.conf --log-file $LOG_DIR/ironic-conductor.log
 EOF
 
-# Install python-client
-$(dirname $0)/install-python-client.sh $IRONIC_CLIENT_GIT_URL $GIT_BRANCH
-
 # Restart the Ironic services
-for i in ironic-api ironic-conductor; do service $i restart; done
+for i in ironic-api ironic-conductor; do
+    service $i restart
+done

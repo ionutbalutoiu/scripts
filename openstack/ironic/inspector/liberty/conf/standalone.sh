@@ -1,18 +1,26 @@
 #!/usr/bin/env bash
+set -e
 
-if [[ $# -ne 3 ]]; then
+if [[ $# -ne 8 ]]; then
     echo "USAGE: $0 <mysql_db_host>" \
-                    "<inspector_db_user_password>" \
-                    "<ironic_inspector_private_ip>"
+                   "<mysql_db_name>" \
+                   "<mysql_db_user>" \
+                   "<mysql_db_user_password>" \
+                   "<ironic_host>" \
+                   "<inspector_etc_dir>" \
+                   "<inspector_log_dir>" \
+                   "<inspector_dnsmasq_interface>"
     exit 1
 fi
 
 MYSQL_HOST="$1"
-MYSQL_INSPECTOR_DB_USER_PASSWORD="$2"
-IRONIC_HOST="$3"
-IRONIC_INSPECTOR_ETC="/etc/ironic-inspector"
-IRONIC_USER="ironic"
-IRONIC_INSPECTOR_LOG="/var/log/ironic-inspector"
+MYSQL_DB_NAME="$2"
+MYSQL_DB_USER="$3"
+MYSQL_DB_USER_PASSWORD="$4"
+IRONIC_HOST="$5"
+IRONIC_INSPECTOR_ETC="$6"
+IRONIC_INSPECTOR_LOG="$7"
+DNSMASQ_INTERFACE="$8"
 
 if [[ ! -d $IRONIC_INSPECTOR_ETC ]]; then
     mkdir -p $IRONIC_INSPECTOR_ETC
@@ -20,19 +28,24 @@ fi
 
 cat << EOF > $IRONIC_INSPECTOR_ETC/inspector.conf
 [DEFAULT]
+debug = true
+verbose = true
 listen_address = 0.0.0.0
 listen_port = 5050
 auth_strategy = noauth
-debug = true
-verbose = true
+timeout = 3600
+rootwrap_config = $IRONIC_INSPECTOR_ETC/rootwrap.conf
 log_file = ironic-inspector.log
 log_dir = $IRONIC_INSPECTOR_LOG
 
 [database]
-connection = mysql+pymysql://inspector:$MYSQL_INSPECTOR_DB_USER_PASSWORD@$MYSQL_HOST/inspector?charset=utf8
+connection = mysql+pymysql://$MYSQL_DB_USER:$MYSQL_DB_USER_PASSWORD@$MYSQL_HOST/$MYSQL_DB_NAME?charset=utf8
 
 [firewall]
-manage_firewall = false
+manage_firewall = true
+dnsmasq_interface = $DNSMASQ_INTERFACE
+firewall_update_period = 15
+firewall_chain = ironic-inspector
 
 [ironic]
 auth_strategy = noauth
@@ -41,6 +54,13 @@ ironic_url = http://$IRONIC_HOST:6385/
 [keystone_authtoken]
 admin_token = ' '
 
+[processing]
+add_ports = pxe
+keep_ports = all
+overwrite_existing = true
+ramdisk_logs_dir = $IRONIC_INSPECTOR_LOG
+always_store_ramdisk_logs = true
 EOF
+
 chmod 600 $IRONIC_INSPECTOR_ETC/inspector.conf
 chown $IRONIC_USER:$IRONIC_USER $IRONIC_INSPECTOR_ETC/inspector.conf

@@ -1,46 +1,68 @@
 #!/usr/bin/env bash
 
-if [[ $# -ne 3 ]]; then
-    echo "USAGE: $0 <mysql_db_host>" \
-                    "<inspector_db_user_password>" \
-                    "<ironic_inspector_private_ip>"
+if [[ $# -ne 8 ]]; then
+    echo "USAGE: $0 <enabled_drivers>" \
+                   "<ironic_private_ip>" \
+                   "<ironic_db_name>" \
+                   "<ironic_db_user>" \
+                   "<ironic_db_user_password>" \
+                   "<tftp_root>" \
+                   "<http_root>" \
+                   "<rabbitmq_user_password>"
     exit 1
 fi
 
-MYSQL_HOST="$1"
-MYSQL_INSPECTOR_DB_USER_PASSWORD="$2"
-IRONIC_HOST="$3"
-IRONIC_INSPECTOR_ETC="/etc/ironic-inspector"
-IRONIC_USER="ironic"
-IRONIC_INSPECTOR_LOG="/var/log/ironic-inspector"
+ENABLED_DRIVERS="$1"
+IRONIC_PRIVATE_IP="$2"
+DB_NAME="$3"
+DB_USER="$4"
+DB_USER_PASSWORD="$5"
+TFTP_ROOT="$6"
+HTTP_ROOT="$7"
+RABBITMQ_USER_PASSWORD="$8"
+LOG_DIR="/var/log/ironic"
+ETC_DIR="/etc/ironic"
 
-if [[ ! -d $IRONIC_INSPECTOR_ETC ]]; then
-    mkdir -p $IRONIC_INSPECTOR_ETC
-fi
-
-cat << EOF > $IRONIC_INSPECTOR_ETC/inspector.conf
+cat << EOF > $ETC_DIR/ironic.conf
 [DEFAULT]
-listen_address = 0.0.0.0
-listen_port = 5050
+log_dir = $LOG_DIR
 auth_strategy = noauth
-debug = true
-verbose = true
-log_file = ironic-inspector.log
-log_dir = $IRONIC_INSPECTOR_LOG
+enabled_drivers = $ENABLED_DRIVERS
+debug = True
+verbose = True
+
+[conductor]
+api_url = http://$IRONIC_PRIVATE_IP:6385
+clean_nodes = false
+
+[api]
+host_ip = 0.0.0.0
+port = 6385
 
 [database]
-connection = mysql+pymysql://inspector:$MYSQL_INSPECTOR_DB_USER_PASSWORD@$MYSQL_HOST/inspector?charset=utf8
+connection = mysql+pymysql://${DB_USER}:${DB_USER_PASSWORD}@127.0.0.1/${DB_NAME}?charset=utf8
 
-[firewall]
-manage_firewall = false
+[dhcp]
+dhcp_provider = none
 
-[ironic]
+[glance]
 auth_strategy = noauth
-ironic_url = http://$IRONIC_HOST:6385/
 
-[keystone_authtoken]
-admin_token = ' '
+[neutron]
+auth_strategy = noauth
 
+[pxe]
+tftp_root = $TFTP_ROOT
+tftp_server = $IRONIC_PRIVATE_IP
+ipxe_enabled = True
+pxe_bootfile_name = undionly.kpxe
+pxe_config_template = \$pybasedir/drivers/modules/ipxe_config.template
+
+[deploy]
+http_root = $HTTP_ROOT
+http_url = http://$IRONIC_PRIVATE_IP:8080
+
+[oslo_messaging_rabbit]
+rabbit_userid = openstack
+rabbit_password = $RABBITMQ_USER_PASSWORD
 EOF
-chmod 600 $IRONIC_INSPECTOR_ETC/inspector.conf
-chown $IRONIC_USER:$IRONIC_USER $IRONIC_INSPECTOR_ETC/inspector.conf
