@@ -40,7 +40,7 @@ host_ip = 0.0.0.0
 port = 6385
 
 [database]
-connection = mysql+pymysql://${DB_USER}:${DB_USER_PASSWORD}@127.0.0.1/${DB_NAME}?charset=utf8
+connection = mysql+pymysql://${DB_USER}:${DB_USER_PASSWORD}@10.0.190.100/${DB_NAME}?charset=utf8
 
 [dhcp]
 dhcp_provider = none
@@ -63,6 +63,7 @@ http_root = $HTTP_ROOT
 http_url = http://$IRONIC_PRIVATE_IP:8080
 
 [oslo_messaging_rabbit]
+rabbit_host = 10.0.190.100
 rabbit_userid = openstack
 rabbit_password = $RABBITMQ_USER_PASSWORD
 EOF
