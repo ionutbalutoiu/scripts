@@ -12,6 +12,6 @@ neutron subnet-create public $1 --gateway $2 --allocation-pool start=$3,end=$4 -
 neutron router-create public_router
 neutron router-gateway-set public_router public
 
-neutron net-create --provider:network_type $5 private
+neutron net-create --shared --provider:network_type $5 private
 neutron subnet-create private 10.0.1.0/24 --name private --dns-nameserver 8.8.8.8
 neutron router-interface-add public_router private
