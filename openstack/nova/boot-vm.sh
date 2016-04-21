@@ -10,7 +10,7 @@ if [[ "$6" != "" ]]; then
     AVAILABITY_ZONE="--availability-zone=$6"
 fi
 
-NETWORK_ID=`neutron net-show $3 | awk '{if (NR==5) {print $4}}'`
+NETWORK_ID=`neutron net-show private | grep " id " | awk '{print $4}'`
 nova boot --flavor $1 --image $2 --nic net-id=$NETWORK_ID --key-name=$4 $5 $AVAILABITY_ZONE --config-drive=true
 #nova boot --flavor $1 --image $2 --nic net-id=$NETWORK_ID --key-name=$4 $5 $AVAILABITY_ZONE
 
