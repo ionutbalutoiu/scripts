@@ -25,9 +25,10 @@ TRUNK_BRANCHES=(
     "lp:charms/trusty/rabbitmq-server"
     "lp:charms/trusty/swift-proxy"
     "lp:charms/trusty/swift-storage"
+    "lp:charms/trusty/juju-gui"
+    "lp:charms/trusty/cinder"
     "lp:~cloudbaseit/charms/trusty/ironic/trunk"
     "lp:~cloudbaseit/charms/trusty/nova-compute-ironic/trunk"
-    "lp:~juju-gui/charms/trusty/juju-gui/trunk"
 )
 
 NEXT_BRANCHES=(
@@ -41,6 +42,7 @@ NEXT_BRANCHES=(
     "lp:~openstack-charmers/charms/trusty/openstack-dashboard/next"
     "lp:~openstack-charmers/charms/trusty/swift-proxy/next"
     "lp:~openstack-charmers/charms/trusty/swift-storage/next"
+    "lp:~openstack-charmers/charms/trusty/cinder/next"
 )
 
 SERIES="$1"

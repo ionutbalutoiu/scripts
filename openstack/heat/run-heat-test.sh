@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 if [ $# -ne 1 ]; then
     echo "USAGE: $0 <stack_number>"
     exit 1

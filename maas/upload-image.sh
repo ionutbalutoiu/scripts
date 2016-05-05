@@ -1,8 +1,8 @@
 #!/bin/bash
 
 if [[ $# -ne 3 ]]; then
-	echo "USAGE: $0 <login_session> <name> <dd_file>"
-	exit 1
+    echo "USAGE: $0 <login_session> <name> <dd_file>"
+    exit 1
 fi
 
 maas $1 boot-resources create name=$2 architecture=amd64/generic filetype=ddtgz content@=$3

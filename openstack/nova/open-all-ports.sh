@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -e
+
 if [ $# -ne 1 ]; then
     echo "USAGE: $0 <security_group_name>"
     exit 1

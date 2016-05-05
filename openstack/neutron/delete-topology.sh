@@ -1,4 +1,7 @@
-# Clear gateways
+#!/usr/bin/env bash
+set -e
+
+# Clear all gateways
 for i in `neutron router-list | awk '{print $2}' | grep -E "[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`; do
     neutron router-gateway-clear $i
 done
