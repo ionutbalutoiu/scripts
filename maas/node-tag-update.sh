@@ -3,5 +3,5 @@ if [ $# -ne 4 ]; then
     exit 1
 fi
 
-NODE_ID=`sudo maas $1 nodes list hostname="$4" | egrep "\"system_id\":" | egrep -o "node-[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`
-sudo maas $1 tag update-nodes $2 $3="$NODE_ID"
+NODE_ID=`maas $1 nodes list hostname="$4" | egrep "\"system_id\":" | egrep -o "node-[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`
+maas $1 tag update-nodes $2 $3="$NODE_ID"

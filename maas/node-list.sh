@@ -3,4 +3,4 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-sudo maas $1 nodes list | grep 'hostname' | cut -d':' -f2
+maas $1 nodes list | grep 'hostname' | cut -d':' -f2

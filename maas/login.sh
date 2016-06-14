@@ -4,4 +4,4 @@ if [ $# -ne 3 ]; then
 fi
 
 API_KEY=`sudo maas-region-admin apikey --username $3`
-sudo maas login $1 http://$2/MAAS/api/1.0 $API_KEY
+maas login $1 http://$2/MAAS/api/1.0 $API_KEY

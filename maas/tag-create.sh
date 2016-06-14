@@ -3,4 +3,4 @@ if [ $# -ne 2 ]; then
     exit 1
 fi
 
-sudo maas $1 tags new name="$2"
+maas $1 tags new name="$2"

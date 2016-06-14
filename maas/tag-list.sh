@@ -3,4 +3,4 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-sudo maas $1 tags list | egrep "\s*\"name\"" | cut -d':' -f2
+maas $1 tags list | egrep "\s*\"name\"" | cut -d':' -f2
