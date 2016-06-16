@@ -6,7 +6,7 @@ if [ $# -ne 7 ]; then
     exit 1
 fi
 
-neutron net-create --shared --router:external --provider:network_type $7 public
+neutron net-create --router:external --provider:network_type $7 public
 neutron subnet-create public $1 --gateway $2 --allocation-pool start=$3,end=$4 --name public --disable-dhcp
 
 neutron router-create public_router
