@@ -1,0 +1,12 @@
+# To specify a user has a role specified in the config file you can use the
+# type field to specify it, valid values are admin, operator, and reseller_admin
+- username: 'admin'
+  tenant_name: 'admin'
+  password: 'Passw0rd'
+  roles:
+     - 'Admin'
+     - 'Member'
+     - '_member_'
+  resources:
+    network: 'private'
+    router: 'public_router'
