@@ -5,8 +5,6 @@ if [[ -z $GOPATH ]]; then
     echo "ERROR: GOPATH was not set."
 fi
 
-sudo apt-get install golang-go-windows-amd64 -y
-
 pushd $GOPATH/src/github.com/juju/juju
 godeps -f -u dependencies.tsv
 popd

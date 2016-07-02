@@ -73,13 +73,13 @@ CreateTgz() {
     fi
     rm -rf $JUJU_RELEASES/* || HandleError "Failed to clean tools directory"
     pushd "$JUJU_RELEASES"
-    for i in trusty centos7
+    for i in trusty centos7 xenial
     do
         V_STRING=$(printf "$VERSION_STR" $i)
         tar -czf "juju-$V_STRING.tgz" -C "$BIN_DIR" jujud 
     done
 
-    for i in win2012r2 win2012hvr2
+    for i in win2008r2 win2012r2 win2012hvr2 win10 win2016 win2016nano win81
     do
         V_STRING=$(printf "$VERSION_STR" $i)
         tar -czf "juju-$V_STRING.tgz" -C "$WIN_BIN_DIR" jujud.exe
