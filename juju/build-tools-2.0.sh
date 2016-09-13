@@ -29,7 +29,7 @@ else
     ARCH="${VERS[2]}"
 fi
 
-for i in trusty centos7; do
+for i in trusty centos7 xenial; do
     tar -czf "juju-$BASE_NAME-$i-${ARCH}.tgz" jujud
 done
 rm jujud
