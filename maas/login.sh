@@ -3,5 +3,5 @@ if [ $# -ne 3 ]; then
     exit 1
 fi
 
-API_KEY=`sudo maas-region-admin apikey --username $3`
-maas login $1 http://$2/MAAS/api/1.0 $API_KEY
+API_KEY=`sudo maas-region apikey --username $3`
+maas login $1 http://$2/MAAS/api/2.0 $API_KEY
