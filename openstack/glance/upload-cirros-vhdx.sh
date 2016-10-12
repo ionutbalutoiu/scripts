@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 wget http://balutoiu.com/ionut/cirros-gen2.vhdx -O /tmp/cirros-gen2.vhdx
 openstack image create --public \
