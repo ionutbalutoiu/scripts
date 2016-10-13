@@ -111,13 +111,13 @@ def run_wsman_cmd(url, auth, username, password, cert_pem, cert_key_pem, cmd):
 
     p = protocol.Protocol(endpoint=url,
                           transport=auth_transport_map[auth],
+                          server_cert_validation="ignore",
                           username=username,
                           password=password,
                           cert_pem=cert_pem,
                           cert_key_pem=cert_key_pem)
 
-    #shell_id = p.open_shell(codepage=65001)
-    shell_id = p.open_shell()
+    shell_id = p.open_shell(codepage=65001)
 
     command_id = p.run_command(shell_id, cmd[0], cmd[1:])
     std_out, std_err, status_code = p.get_command_output(shell_id, command_id)
