@@ -16,5 +16,5 @@ if [[ "$7" != "" ]]; then
     CONFIG_DRIVE="--config-drive=$7"
 fi
 
-NETWORK_ID=`neutron net-show private | grep " id " | awk '{print $4}'`
+NETWORK_ID=`neutron net-show $3 | grep " id " | awk '{print $4}'`
 nova boot --flavor $1 --image $2 --nic net-id=$NETWORK_ID --key-name=$4 $5 $AVAILABITY_ZONE $CONFIG_DRIVE
