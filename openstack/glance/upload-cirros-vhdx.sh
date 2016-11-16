@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-wget http://balutoiu.com/ionut/cirros-gen2.vhdx -O /tmp/cirros-gen2.vhdx
+wget https://balutoiu.com:8000/ionut/images/cirros-gen2.vhdx -O /tmp/cirros-gen2.vhdx
 openstack image create --property hw_machine_type=hyperv-gen2 \
                        --property hypervisor_version_requires='>=6.3' \
                        --property hypervisor_type=hyperv \
