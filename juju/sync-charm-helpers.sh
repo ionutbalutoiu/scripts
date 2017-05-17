@@ -8,7 +8,7 @@ if [[ $# -lt 2 ]]; then
 fi
 
 TMP_DIR="/tmp/juju-powershell-modules-$(date | md5sum | awk '{print $1}')"
-git clone https://github.com/cloudbase/juju-powershell-modules.git $TMP_DIR --recursive
+git clone https://github.com/ionutbalutoiu/juju-powershell-modules.git $TMP_DIR --recursive
 
 CHARM_DIR=$1
 shift
@@ -18,6 +18,7 @@ while [[ $# -gt 0 ]]; do
         rm -rf "$CHARM_DIR/lib/Modules/$1"
     fi
     cp -rf $TMP_DIR/$1 "$CHARM_DIR/lib/Modules/$1"
+    rm -rf "$CHARM_DIR/lib/Modules/$1/.git"
     shift
 done
 
