@@ -1,29 +1,29 @@
 #!/usr/bin/env bash
 set -e
 
-# Clear all gateways
-for i in `neutron router-list | awk '{print $2}' | grep -E "[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`; do
-    neutron router-gateway-clear $i
-done
-
-# Clear all interfaces from all existing routers
-for router in `neutron router-list | awk '{print $2}' | grep -E "[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`; do
-    for interface in `neutron router-port-list $router | awk '{print $8}' | grep -Eo "[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`; do
-        neutron router-interface-delete $router $interface
+# Delete all the routers
+for ROUTER in `openstack router list | awk '{print $2}' | grep -E "[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`; do
+    openstack router unset $ROUTER --external-gateway
+    for PORT in `openstack port list --router $ROUTER | awk '{print $2}' | grep -Eo "[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`; do
+        openstack router remove port $ROUTER $PORT
     done
+    openstack router delete $ROUTER
 done
 
-# Delete all routers
-for i in `neutron router-list | awk '{print $2}' | grep -E "[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`; do
-    neutron router-delete $i
+# Delete all the networks' subnets
+SUBNETS=""
+for SUBNET in `openstack subnet list | awk '{print $2}' | grep -E "[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`; do
+    SUBNETS="$SUBNETS $SUBNET"
 done
+if [[ ! -z $SUBNETS ]]; then
+    openstack subnet delete $SUBNETS
+fi
 
-# Delete all networks subnets
-for i in `neutron subnet-list | awk '{print $2}' | grep -E "[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`; do
-    neutron subnet-delete $i
+# Delete all the networks
+NETWORKS=""
+for NETWORK in `openstack network list | awk '{print $2}' | grep -E "[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`; do
+    NETWORKS="$NETWORKS $NETWORK"
 done
-
-# Delete all networks
-for i in `neutron net-list | awk '{print $2}' | grep -E "[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`; do
-    neutron net-delete $i
-done
+if [[ ! -z $NETWORKS ]]; then
+    openstack network delete $NETWORKS
+fi

@@ -1,21 +1,21 @@
 #!/bin/bash
 set -e
 
-if [ $# -ne 7 ]; then
-    echo "USAGE: $0 <public_net_CIDR> <public_net_gateway> <start_ip> <end_ip> <private_net_CIDR> <private_net_DNS> <networks_type>"
+if [ $# -ne 5 ]; then
+    echo "USAGE: $0 <public_net_CIDR> <public_net_gateway> <start_ip> <end_ip> <private_nets_dns>"
     exit 1
 fi
 
-neutron net-create --router:external --provider:network_type flat --provider:physical_network external public
-neutron subnet-create public $1 --gateway $2 --allocation-pool start=$3,end=$4 --name public --disable-dhcp
+openstack network create --external --provider-network-type flat --provider-physical-network external --share public
+openstack subnet create --network public --subnet-range $1 --allocation-pool start=$3,end=$4 --gateway $2 --no-dhcp --ip-version 4 public_subnet
 
-neutron router-create public_router
-neutron router-gateway-set public_router public
+openstack router create public_router
+openstack router set --external-gateway public public_router
 
-neutron net-create --shared --provider:network_type $7 --provider:physical_network data private_vlan
-neutron subnet-create private_vlan $5 --name private_vlan --dns-nameserver $6
-neutron router-interface-add public_router private_vlan
+openstack network create --provider-network-type vlan --provider-physical-network data --share private_vlan
+openstack subnet create --network private_vlan --subnet-range 10.1.0.0/24 --ip-version 4 private_vlan_subnet
+openstack router add subnet public_router private_vlan_subnet
 
-neutron net-create --shared --provider:network_type vxlan private_vxlan
-neutron subnet-create private_vxlan 10.0.3.0/24 --name private_vxlan --dns-nameserver 8.8.8.8
-neutron router-interface-add public_router private_vxlan
+openstack network create --provider-network-type vxlan --share private_vxlan
+openstack subnet create --network private_vxlan --subnet-range 10.1.3.0/24 --ip-version 4 private_vxlan_subnet
+openstack router add subnet public_router private_vxlan_subnet

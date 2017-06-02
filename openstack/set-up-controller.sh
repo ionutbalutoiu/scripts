@@ -3,11 +3,13 @@ set -e
 
 DIR=$(dirname $0)
 
-sudo apt-get install python-openstackclient -y
-
 $DIR/glance/upload-cirros-vhdx.sh
-$DIR/nova/open-all-ports.sh default
-$DIR/neutron/create-topology.sh 192.168.101.0/24 192.168.101.2 192.168.101.222 192.168.101.230 10.0.1.0/24 192.168.101.2 vlan
-nova keypair-add key > $DIR/vm_key
-chmod 600 $DIR/vm_key
-nova flavor-create test 1 512 1 1
+$DIR/neutron/create-topology.sh 192.168.101.0/24 192.168.101.2 192.168.101.222 192.168.101.230 192.168.101.2
+
+openstack keypair create key > $HOME/vm_key
+chmod 600 $HOME/vm_key
+
+openstack flavor create --id 1 --ram 512  --disk 1   --vcpus 1 m1.tiny
+openstack flavor create --id 2 --ram 1024 --disk 10  --vcpus 1 m1.small
+openstack flavor create --id 3 --ram 2048 --disk 30  --vcpus 2 m1.medium
+openstack flavor create --id 4 --ram 3072 --disk 50  --vcpus 2 m1.large
