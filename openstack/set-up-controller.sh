@@ -4,10 +4,10 @@ set -e
 DIR=$(dirname $0)
 
 $DIR/glance/upload-cirros-vhdx.sh
-$DIR/neutron/create-topology.sh 192.168.101.0/24 192.168.101.2 192.168.101.222 192.168.101.230 192.168.101.2
+$DIR/neutron/create-topology.sh 192.168.101.0/24 192.168.101.2 192.168.101.210 192.168.101.230 192.168.101.2
 
-openstack keypair create key > $HOME/vm_key
-chmod 600 $HOME/vm_key
+openstack keypair create key > $HOME/admin_nova_key
+chmod 600 $HOME/admin_nova_key
 
 openstack flavor create --id 1 --ram 512  --disk 1   --vcpus 1 m1.tiny
 openstack flavor create --id 2 --ram 1024 --disk 10  --vcpus 1 m1.small
