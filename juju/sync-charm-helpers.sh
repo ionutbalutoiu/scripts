@@ -8,7 +8,7 @@ if [[ $# -lt 2 ]]; then
 fi
 
 TMP_DIR="/tmp/juju-powershell-modules-$(date | md5sum | awk '{print $1}')"
-git clone https://github.com/ionutbalutoiu/juju-powershell-modules.git $TMP_DIR --recursive
+git clone https://github.com/cloudbase/juju-powershell-modules.git $TMP_DIR --recursive
 
 CHARM_DIR=$1
 shift
