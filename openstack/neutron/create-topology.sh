@@ -12,10 +12,6 @@ openstack subnet create --network public --subnet-range $1 --allocation-pool sta
 openstack router create public_router
 openstack router set --external-gateway public public_router
 
-openstack network create --provider-network-type vlan --provider-physical-network data --share private_vlan
-openstack subnet create --network private_vlan --subnet-range 10.1.0.0/24 --ip-version 4 private_vlan_subnet
-openstack router add subnet public_router private_vlan_subnet
-
-openstack network create --provider-network-type vxlan --share private_vxlan
-openstack subnet create --network private_vxlan --subnet-range 10.1.3.0/24 --ip-version 4 private_vxlan_subnet
-openstack router add subnet public_router private_vxlan_subnet
+openstack network create private
+openstack subnet create --network private --subnet-range 10.33.22.0/24 --ip-version 4 --dns-nameserver 1.1.1.1 private_subnet
+openstack router add subnet public_router private_subnet
