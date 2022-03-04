@@ -13,5 +13,8 @@ openstack router create public_router
 openstack router set --external-gateway public public_router
 
 openstack network create private
-openstack subnet create --network private --subnet-range 10.33.22.0/24 --ip-version 4 --dns-nameserver 1.1.1.1 private_subnet
+openstack subnet create --network private --subnet-range 10.33.22.0/24 --ip-version 4 --dns-nameserver $5 private_subnet
+#openstack network create private --provider-network-type vlan --provider-physical-network external
+#openstack subnet create --network private --subnet-range 10.33.22.0/24 --allocation-pool start=10.33.22.2,end=10.33.22.224 --ip-version 4 --dns-nameserver $5 private_subnet
+
 openstack router add subnet public_router private_subnet
